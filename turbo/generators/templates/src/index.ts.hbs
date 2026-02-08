@@ -1,0 +1,12 @@
+/**
+* @repo/{{ name }}
+*/
+
+{{#if deps}}
+// Imports from user-defined dependencies
+{{{ generateImports deps }}}
+{{/if}}
+
+export const {{ camelCase name }} = () => {
+console.log("{{ name }} package ready!");
+};

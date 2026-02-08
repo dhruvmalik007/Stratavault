@@ -24,6 +24,7 @@
     "dependencies": {
         "@polymarket/clob-client": "^5.2.1",
         "@polymarket/sdk": "^6.0.1",
+        "ethers": "^6.16.0",
         "kalshi-typescript": "^3.6.0"
     }
 }

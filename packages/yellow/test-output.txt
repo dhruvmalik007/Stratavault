@@ -1,0 +1,61 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/packages/yellow[39m
+
+[90mstdout[2m | test/clearnode.test.ts[2m > [22m[2mClearNodeClient E2E[2m > [22m[2mshould connect and authenticate
+[22m[39mMock server listening on port 8080
+
+[90mstdout[2m | test/clearnode.test.ts[2m > [22m[2mClearNodeClient E2E[2m > [22m[2mshould connect and authenticate
+[22m[39mWebSocket connected
+Starting authentication...
+
+[90mstderr[2m | test/clearnode.test.ts[2m > [22m[2mClearNodeClient E2E[2m > [22m[2mshould connect and authenticate
+[22m[39mFailed to sign auth challenge: TypeError: Cannot read properties of undefined (reading 'challengeMessage')
+    at Proxy.createAuthVerifyMessage (/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/node_modules/[4m.pnpm[24m/@erc7824+nitrolite@0.5.3_bufferutil@4.0.9_typescript@5.9.3_utf-8-validate@5.0.10/node_modules/[4m@erc7824/nitrolite[24m/dist/rpc/api.js:65:50)
+    at ClearNodeClient.handleMessage [90m(/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/packages/yellow/[39msrc/clearnode.ts:158:56[90m)[39m
+    at WebSocket.<anonymous> [90m(/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/packages/yellow/[39msrc/clearnode.ts:87:22[90m)[39m
+[90m    at WebSocket.emit (node:events:508:28)[39m
+    at Receiver.receiverOnMessage (/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/node_modules/[4m.pnpm[24m/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/[4mws[24m/lib/websocket.js:1220:20)
+[90m    at Receiver.emit (node:events:508:28)[39m
+    at Receiver.dataMessage (/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/node_modules/[4m.pnpm[24m/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/[4mws[24m/lib/receiver.js:596:14)
+    at Receiver.getData (/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/node_modules/[4m.pnpm[24m/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/[4mws[24m/lib/receiver.js:496:10)
+    at Receiver.startLoop (/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/node_modules/[4m.pnpm[24m/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/[4mws[24m/lib/receiver.js:167:16)
+    at Receiver._write (/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/node_modules/[4m.pnpm[24m/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/[4mws[24m/lib/receiver.js:94:10)
+
+ [31m❯[39m test/clearnode.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 45[2mms[22m[39m
+[31m     [31m×[31m should connect and authenticate[39m[32m 16[2mms[22m[39m
+     [32m✓[39m should retrieve channels[32m 0[2mms[22m[39m
+     [32m✓[39m should handle disconnect[32m 0[2mms[22m[39m
+[90mstdout[2m | WebSocket.<anonymous> (/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/packages/yellow/src/clearnode.ts:104:25)
+[22m[39mWebSocket closed: 1005 
+
+[90mstdout[2m | ClearNodeClient.attemptReconnect (/Users/renu_malik/Desktop/coding_projects/personal_projects/solana-colossum-hackathon/packages/yellow/src/clearnode.ts:236:17)
+[22m[39mAttempting reconnect in 3000ms...
+
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/clearnode.test.ts[2m > [22mClearNodeClient E2E[2m > [22mshould connect and authenticate
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'challengeMessage')[39m
+[90m [2m❯[22m Proxy.createAuthVerifyMessage ../../node_modules/.pnpm/@erc7824+nitrolite@0.5.3_bufferutil@4.0.9_typescript@5.9.3_utf-8-validate@5.0.10/node_modules/@erc7824/nitrolite/dist/rpc/api.js:[2m65:50[22m[39m
+[36m [2m❯[22m ClearNodeClient.handleMessage src/clearnode.ts:[2m158:56[22m[39m
+    [90m156| [39m            [35mif[39m (message[33m.[39mres [33m&&[39m message[33m.[39mres[[34m1[39m] [33m===[39m [32m"auth_challenge"[39m) {
+    [90m157| [39m                [35mtry[39m {
+    [90m158| [39m                    const authVerify = await nitrolite.createAuthVerif…
+    [90m   | [39m                                                       [31m^[39m
+    [90m159| [39m                        (payload) [33m=>[39m [35mthis[39m[33m.[39m[34mmessageSigner[39m(payload)[33m,[39m
+    [90m160| [39m                        message[33m,[39m
+[90m [2m❯[22m WebSocket.<anonymous> src/clearnode.ts:[2m87:22[22m[39m
+[90m [2m❯[22m Receiver.receiverOnMessage ../../node_modules/.pnpm/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/ws/lib/websocket.js:[2m1220:20[22m[39m
+[90m [2m❯[22m Receiver.dataMessage ../../node_modules/.pnpm/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/ws/lib/receiver.js:[2m596:14[22m[39m
+[90m [2m❯[22m Receiver.getData ../../node_modules/.pnpm/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/ws/lib/receiver.js:[2m496:10[22m[39m
+[90m [2m❯[22m Receiver.startLoop ../../node_modules/.pnpm/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/ws/lib/receiver.js:[2m167:16[22m[39m
+[90m [2m❯[22m Receiver._write ../../node_modules/.pnpm/ws@8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10/node_modules/ws/lib/receiver.js:[2m94:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (3)[39m
+[2m   Start at [22m 12:20:26
+[2m   Duration [22m 423ms[2m (transform 60ms, setup 0ms, import 302ms, tests 45ms, environment 0ms)[22m
+

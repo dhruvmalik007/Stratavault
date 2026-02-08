@@ -7,7 +7,7 @@ async function main() {
     const client = new KalshiClient();
 
     console.log("Fetching Kalshi Events (Limit 15)...");
-    const response = await client.getEvents(15);
+    const response = await client.events.getEvents(15);
 
     const res = response as any;
     if (!res || (!res.markets && !res.events)) {
@@ -50,19 +50,16 @@ async function main() {
             console.log("Market Details Title:", marketDetails?.market?.title || marketDetails?.title || "Failed to fetch");
 
             console.log("Fetching orderbook...");
-            const book = await client.getOrderbook(validMarketTicker);
+            const book = await client.getOrderBook(validMarketTicker);
             if (book) {
                 console.log("Orderbook (snapshot):", JSON.stringify(book).slice(0, 200));
             } else {
                 console.log("Orderbook unavailable.");
             }
 
-            console.log("Fetching recent trades...");
-            const trades = await client.getTrades(validMarketTicker);
-            console.log(`Found ${trades?.trades?.length || 0} trades.`);
-            if (trades && trades.trades && trades.trades.length > 0) {
-                console.log("Recent Trade:", trades.trades[0]);
-            }
+            // Trades API not implemented in main interface, skipping or using raw API if needed
+            // console.log("Fetching recent trades...");
+            // const trades = await client.getTrades(validMarketTicker);
         }
     }
 }

@@ -1,0 +1,3 @@
+[submodule "packages/indexer/nitrolite"]
+	path = packages/indexer/nitrolite
+	url = https://github.com/erc7824/nitrolite.git

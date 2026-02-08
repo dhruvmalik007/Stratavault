@@ -47,7 +47,7 @@ async function main() {
                 }
 
                 console.log(`Fetching orderbook for ${tokenId}...`);
-                const book = await client.getOrderbook(tokenId);
+                const book = await client.getOrderBook(tokenId);
                 console.log("Orderbook (Top Bids/Asks):", JSON.stringify(book, null, 2).slice(0, 500));
             }
         }

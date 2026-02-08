@@ -1,0 +1,26 @@
+{
+    "name": "@repo/smart-account",
+    "version": "0.1.0",
+    "private": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "lint": "eslint .",
+        "dev": "tsc --watch"
+    },
+    "dependencies": {
+        "@safe-global/api-kit": "^4.0.1",
+        "@safe-global/protocol-kit": "^6.1.2",
+        "@safe-global/safe-core-sdk-types": "^5.0.0",
+        "dotenv": "^16.4.5",
+        "ethers": "^6.13.0"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@safe-global/types-kit": "^3.0.0",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.5.0"
+    }
+}

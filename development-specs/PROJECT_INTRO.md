@@ -3,16 +3,13 @@
 
 ## Identity & Vibe
 **Stratavault** represents the convergence of the ecosystem for integrating the prediction makets professional trading with the long term :
--  High-level. 
-
-
-and secure **Vaults**. The name evokes a sense of institutional-grade solidity mixed with the dynamic, layered intelligence of AI agents ("Strata"). It positions the project not just as a trading bot, but as a sophisticated *Autonomous Hedge Fund Manager*.
+-  High-level description of the project:
+    Stratavault is a sophisticated **Autonomous Hedge Fund Manager** that bridges the gap between active speculation and passive accumulation. It operates on the principle that **Capital should never be idle**.
 
 *   **Aesthetics**: Minimalist, Dark Mode, Neon Accents (Cyber-Finance).
 *   **Personality**: Cold, calculated, efficient, and highly profitable.
 
 ## The Core Thesis: "AgentFi"
-Stratavault bridges the gap between active speculation and passive accumulation. It operates on the principle that **Capital should never be idle**.
 
 ### The Loop
 1.  **Seek (Agentic Alpha)**: AI Agents continuously scan prediction markets (Polymarket, Drift, etc.) for arbitrage opportunities, mispriced events, and sentiment divergences using complex quant models.
@@ -37,7 +34,7 @@ We are moving from "User clicks button" to "User approves Agent".
 
 #### 3. Automated Yield Management
 Volatile wins need stable homes.
-*   **Metric**: Solana DeFi TVL has surpassed **$10B+** (2026), with protocols like Jito and Kamino offering mature, composable yield products.
+*   **Metric**:  DeFi TVL has surpassed **$120B+** (2026), and varies significantly (from $100B to $150B) based on the various sources .
 *   **Synergy**: Stratavault treats DeFi protocols as the "Bank Account" for its Agents, ensuring 100% capital efficiency.
 
 ## Summary

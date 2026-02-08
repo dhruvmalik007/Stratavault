@@ -3,7 +3,7 @@
 ## Overview
 - **Yellow Network Indexer**: Listens for `SessionOpened`, `SessionClosed`, and `Dispute` events from the Settlement Contract.
 - **Uniswap V4 Indexer**: Tracks `Swap` and `ModifyPosition` events via Alchemy/Infura WebSockets.
-- **Agent Logs**: Ingests off-chain "Intent Log" from Nitrolite SDK (peer-to-peer gossip).
+- **Agent Logs**: Ingests off-chain "Intent Log" from Nitrolite SDK (based on the user limit orders to execute the personal trading requirements).
 
 ## Application Stack
 - **Network**: Ethereum Sepolia / Yellow Testnet

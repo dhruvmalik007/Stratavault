@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider     = "postgresql"
+  relationMode = "prisma"
+}
+
+// User Profile for Safe Integration
+model User {
+  id            String   @id @default(cuid())
+  userId        String   @unique // External ID (Privy)
+  walletAddress String? // EOA address
+  safeAddress   String?
+  safeOwners    String[]
+  network       String?
+  role          String   @default("participant")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  prompts       Prompt[]
+  trades        Trade[]
+}
+
+// Storage for AI Agent interactions
+model Prompt {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [userId])
+  content   String   @db.Text
+  response  String?  @db.Text
+  tokens    Int?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Indexed Data from Prediction Markets (Polymarket/Kalshi)
+model MarketData {
+  id          String   @id @default(cuid())
+  marketId    String   @unique // External Market ID
+  question    String   @db.Text
+  volume      Float?
+  probability Float?
+  source      String // "POLYMARKET" | "KALSHI"
+  data        Json? // Raw JSONB data
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  trades      Trade[]
+}
+
+// Track User Executed Trades
+model Trade {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [userId])
+  marketDataId String
+  market       MarketData @relation(fields: [marketDataId], references: [id])
+  amount       Float
+  side         String // "YES" | "NO"
+  status       String // "PENDING" | "EXECUTED" | "FAILED"
+  txHash       String?
+  createdAt    DateTime   @default(now())
+
+  @@index([userId])
+  @@index([marketDataId])
+}
+
+// ... existing content ...
+
+// Market Entity (distinct from indexed MarketData)
+model Market {
+  id             String            @id @default(cuid())
+  slug           String            @unique
+  title          String
+  description    String?
+  category       String?
+  status         String
+  resolutionTime DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  orders         Order[]
+  positions      Position[]
+  embeds         Embed[]
+  discussion     DiscussionThread?
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  marketId  String
+  market    Market   @relation(fields: [marketId], references: [id])
+  side      String
+  price     Float
+  size      Float
+  remaining Float
+  status    String
+  createdAt DateTime @default(now())
+
+  @@index([marketId])
+}
+
+model Position {
+  id               String   @id @default(cuid())
+  marketId         String
+  market           Market   @relation(fields: [marketId], references: [id])
+  owner            String
+  size             Float
+  collateralLocked Float
+  createdAt        DateTime @default(now())
+
+  @@index([marketId])
+  @@index([owner])
+}
+
+model DiscussionThread {
+  id        String              @id @default(cuid())
+  marketId  String              @unique
+  market    Market              @relation(fields: [marketId], references: [id])
+  createdBy String? // Changed from 'cre' to 'createdBy' for clarity, will map in index.ts if needed
+  status    String              @default("open")
+  createdAt DateTime            @default(now())
+  messages  DiscussionMessage[]
+}
+
+model DiscussionMessage {
+  id        String           @id @default(cuid())
+  threadId  String
+  thread    DiscussionThread @relation(fields: [threadId], references: [id])
+  userId    String // Added userId as per API usage
+  role      String // Added role (user/assistant)
+  content   String
+  author    String? // API uses author/userId somewhat interchangeably, keeping optional
+  createdAt DateTime         @default(now())
+
+  @@index([threadId])
+}
+
+model CreatorProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  walletAddress      String?
+  role               String?
+  name               String?
+  bio                String?
+  avatarUrl          String?
+  profileData        Json? // Using Json for z.any()
+  portfolioStats     Json?
+  portfolioConnected Boolean?
+  verificationStatus String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Embed {
+  id        String   @id @default(cuid())
+  marketId  String
+  market    Market   @relation(fields: [marketId], references: [id])
+  url       String
+  type      String
+  source    String // Added source field
+  createdAt DateTime @default(now())
+
+  @@index([marketId])
+}
+
+model MemoryPointer {
+  id        String   @id @default(cuid())
+  agentId   String? // Made optional
+  memoryId  String? // Made optional
+  ownerType String? // New field
+  ownerId   String? // New field
+  provider  String? // New field
+  tags      String[] // New field
+  metadata  Json? // New field
+  createdAt DateTime @default(now())
+
+  @@index([agentId])
+  @@index([ownerId])
+}

@@ -1,0 +1,51 @@
+{
+  "name": "api",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002 --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "analyze": "ANALYZE=true npm run build",
+    "test": "NODE_ENV=test vitest run",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.44",
+    "@copilotkit/runtime": "^1.0.0",
+    "@repo/ai": "workspace:*",
+    "@repo/database": "workspace:*",
+    "@repo/prediction-market": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/yellow": "workspace:*",
+    "@sentry/nextjs": "^10.17.0",
+    "@solana/web3.js": "^1.98.4",
+    "@t3-oss/env-nextjs": "^0.13.8",
+    "ai": "^3.3.25",
+    "ethers": "^6.16.0",
+    "javascript-lp-solver": "^1.0.3",
+    "mem0ai": "^2.1.38",
+    "next": "16.1.6",
+    "openai": "^4.57.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "svix": "^1.76.1",
+    "uuid": "^13.0.0",
+    "viem": "^2.45.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@repo/database": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "24.7.0",
+    "@types/react": "19.2.1",
+    "@types/react-dom": "19.2.0",
+    "@types/uuid": "^11.0.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

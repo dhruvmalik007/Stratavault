@@ -1,0 +1,618 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Infrastructure for Solana Distribution Prediction Markets - Amplify, DynamoDB, Secrets Manager, and IAM'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name (dev, staging, or prod)
+  
+  GitHubRepository:
+    Type: String
+    Description: GitHub repository URL (e.g., https://github.com/username/repo)
+  
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Git branch to deploy
+  
+  GitHubToken:
+    Type: String
+    NoEcho: true
+    Description: GitHub personal access token for Amplify to access the repository
+
+  PrivyAppId:
+    Type: String
+    Description: Privy App ID for authentication
+  
+  OpenAIApiKey:
+    Type: String
+    NoEcho: true
+    Description: OpenAI API key for AI insights feature
+
+  SolanaMainnetRPC:
+    Type: String
+    Default: https://api.mainnet-beta.solana.com
+    Description: Solana mainnet RPC endpoint
+  
+  SolanaDevnetRPC:
+    Type: String
+    Default: https://api.devnet.solana.com
+    Description: Solana devnet RPC endpoint
+
+  ApiBaseUrl:
+    Type: String
+    Default: http://localhost:3002
+    Description: Base URL for API (apps/api) used by web client
+
+
+  WebOrigin:
+    Type: String
+    Default: http://localhost:3000
+    Description: Web app origin for CORS and downstream services
+
+  # Draft parameters for mem0 self-hosting (non-destructive; no resources created yet)
+  Mem0Enabled:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable mem0 self-hosting resources. When false, no mem0 resources are created.
+
+  Mem0ServiceImage:
+    Type: String
+    Default: mem0ai/mem0:latest
+    Description: Docker image for mem0 service (informational, not used yet)
+
+  Mem0VectorDB:
+    Type: String
+    Default: weaviate
+    AllowedValues:
+      - weaviate
+      - pgvector
+      - milvus
+      - opensearch
+      - pinecone
+      - qdrant
+    Description: Vector DB provider for mem0 (informational)
+
+  Mem0GraphStore:
+    Type: String
+    Default: neo4j
+    AllowedValues:
+      - neo4j
+      - neptune
+      - kuzu
+      - none
+    Description: Graph store for mem0 graph memory (informational)
+
+  Mem0RerankerProvider:
+    Type: String
+    Default: sentence-transformers
+    AllowedValues:
+      - sentence-transformers
+      - cohere
+      - none
+    Description: Reranker provider for mem0 search (informational)
+
+Resources:
+  # ============================================
+  # DynamoDB Table for API Response Caching
+  # ============================================
+  APICacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'solana-prediction-cache-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: cacheKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cacheKey
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ============================================
+  # Optional DynamoDB tables for memory integration (only when Mem0EnabledCond)
+  # ============================================
+  DiscussionThreadsTable:
+    Condition: Mem0EnabledCond
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'discussion-threads-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: threadId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: threadId
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  DiscussionMessagesTable:
+    Condition: Mem0EnabledCond
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'discussion-messages-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: threadId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  MemoryPointersTable:
+    Condition: Mem0EnabledCond
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'memory-pointers-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ============================================
+  # DynamoDB Trades Table with GSIs (by market time, by position time)
+  # ============================================
+  TradesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'trades-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: marketId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: positionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: trades_by_market_time
+          KeySchema:
+            - AttributeName: marketId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: trades_by_position_time
+          KeySchema:
+            - AttributeName: positionId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ============================================
+  # DynamoDB Positions Table with GSIs (by owner, by market)
+  # ============================================
+  PositionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'positions-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: owner
+          AttributeType: S
+        - AttributeName: marketId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: positions_by_owner
+          KeySchema:
+            - AttributeName: owner
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: positions_by_market
+          KeySchema:
+            - AttributeName: marketId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: SolanaPredictionMarkets
+
+  # ============================================
+  # DynamoDB Orders Table with GSIs for top-of-book queries
+  # ============================================
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'orders-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: marketSide
+          AttributeType: S
+        - AttributeName: sort
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: orders_by_market_buy
+          KeySchema:
+            - AttributeName: marketSide
+              KeyType: HASH
+            - AttributeName: sort
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: orders_by_market_sell
+          KeySchema:
+            - AttributeName: marketSide
+              KeyType: HASH
+            - AttributeName: sort
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ============================================
+  # Secrets Manager for Sensitive Configuration
+  # ============================================
+  OpenAISecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'solana-prediction/${Environment}/openai-api-key'
+      Description: OpenAI API key for AI insights
+      SecretString: !Sub |
+        {
+          "OPENAI_API_KEY": "${OpenAIApiKey}"
+        }
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  SolanaDeploymentKeypair:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'solana-prediction/${Environment}/deployment-keypair'
+      Description: Solana deployment wallet keypair (to be updated manually)
+      SecretString: |
+        {
+          "keypair": "[]",
+          "note": "Update this with your Solana deployment keypair JSON array"
+        }
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ============================================
+  # SSM Parameters for Program IDs and Config
+  # ============================================
+  SolanaProgramIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/solana-prediction/${Environment}/program-id'
+      Type: String
+      Value: 'NOT_DEPLOYED_YET'
+      Description: Deployed Solana program ID (updated by CI/CD)
+      Tags:
+        Environment: !Ref Environment
+
+  # ============================================
+  # IAM Role for Amplify App
+  # ============================================
+  AmplifyServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'AmplifyRole-SolanaPrediction-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - amplify.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess-Amplify
+      Policies:
+        - PolicyName: AmplifyDynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt APICacheTable.Arn
+                  - !GetAtt OrdersTable.Arn
+                  - !GetAtt TradesTable.Arn
+                  - !GetAtt PositionsTable.Arn
+        - PolicyName: AmplifySecretsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref OpenAISecret
+                  - !Ref SolanaDeploymentKeypair
+        - PolicyName: AmplifySSMAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource:
+                  - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/solana-prediction/${Environment}/*'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ============================================
+  # Amplify App for Next.js Frontend
+  # ============================================
+  AmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: !Sub 'solana-prediction-markets-${Environment}'
+      Description: Solana Distributional Prediction Markets Platform
+      Repository: !Ref GitHubRepository
+      AccessToken: !Ref GitHubToken
+      BuildSpec: |
+        version: 1
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - echo "Installing dependencies with pnpm..."
+                - corepack enable
+                - corepack prepare pnpm@9.0.0 --activate
+                - pnpm install --frozen-lockfile
+            build:
+              commands:
+                - echo "Building web application..."
+                - pnpm run build --filter=web
+          artifacts:
+            baseDirectory: apps/web/.next
+            files:
+              - '**/*'
+          cache:
+            paths:
+              - node_modules/**/*
+              - .pnpm-store/**/*
+      IAMServiceRole: !GetAtt AmplifyServiceRole.Arn
+      EnvironmentVariables:
+        - Name: _LIVE_PACKAGE_UPDATES
+          Value: '[{"pkg":"@aws-amplify/cli","type":"npm","version":"latest"}]'
+        - Name: AMPLIFY_MONOREPO_APP_ROOT
+          Value: apps/web
+        - Name: AMPLIFY_DIFF_DEPLOY
+          Value: 'false'
+        - Name: NEXT_PUBLIC_PRIVY_APP_ID
+          Value: !Ref PrivyAppId
+        - Name: NEXT_PUBLIC_SOLANA_MAINNET_RPC
+          Value: !Ref SolanaMainnetRPC
+        - Name: NEXT_PUBLIC_SOLANA_DEVNET_RPC
+          Value: !Ref SolanaDevnetRPC
+        - Name: NEXT_PUBLIC_API_BASE_URL
+          Value: !Ref ApiBaseUrl
+        - Name: WEB_ORIGIN
+          Value: !Ref WebOrigin
+        - Name: DYNAMODB_CACHE_TABLE_NAME
+          Value: !Ref APICacheTable
+        - Name: DYNAMODB_TABLE_ORDERS
+          Value: !Ref OrdersTable
+        - Name: DYNAMODB_TABLE_TRADES
+          Value: !Ref TradesTable
+        - Name: DYNAMODB_TABLE_POSITIONS
+          Value: !Ref PositionsTable
+        - Name: DYNAMODB_TABLE_DISCUSSION_THREADS
+          Value: !If [ Mem0EnabledCond, !Ref DiscussionThreadsTable, "discussion-threads" ]
+        - Name: DYNAMODB_TABLE_DISCUSSION_MESSAGES
+          Value: !If [ Mem0EnabledCond, !Ref DiscussionMessagesTable, "discussion-messages" ]
+        - Name: DYNAMODB_TABLE_MEMORY_POINTERS
+          Value: !If [ Mem0EnabledCond, !Ref MemoryPointersTable, "memory-pointers" ]
+      CustomRules:
+        - Source: /<*>
+          Target: /index.html
+          Status: '404-200'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  AmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId: !GetAtt AmplifyApp.AppId
+      BranchName: !Ref GitHubBranch
+      EnableAutoBuild: true
+      EnablePullRequestPreview: false
+      Stage: !If [IsProduction, PRODUCTION, DEVELOPMENT]
+      EnvironmentVariables:
+        - Name: ENVIRONMENT
+          Value: !Ref Environment
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ============================================
+  # Lambda Execution Role (for future serverless functions)
+  # ============================================
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'LambdaExecution-SolanaPrediction-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt APICacheTable.Arn
+                  - !GetAtt OrdersTable.Arn
+                  - !GetAtt TradesTable.Arn
+                  - !GetAtt PositionsTable.Arn
+        - PolicyName: SecretsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref OpenAISecret
+        - PolicyName: SSMAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/solana-prediction/${Environment}/*'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, prod]
+  Mem0EnabledCond: !Equals [!Ref Mem0Enabled, "true"]
+
+Outputs:
+  AmplifyAppId:
+    Description: Amplify App ID
+    Value: !GetAtt AmplifyApp.AppId
+    Export:
+      Name: !Sub '${AWS::StackName}-AmplifyAppId'
+
+  AmplifyAppURL:
+    Description: Amplify App Default Domain
+    Value: !Sub 'https://${GitHubBranch}.${AmplifyApp.DefaultDomain}'
+    Export:
+      Name: !Sub '${AWS::StackName}-AmplifyURL'
+
+  DynamoDBTableName:
+    Description: DynamoDB Cache Table Name
+    Value: !Ref APICacheTable
+    Export:
+      Name: !Sub '${AWS::StackName}-CacheTableName'
+
+  DynamoDBTableArn:
+    Description: DynamoDB Cache Table ARN
+    Value: !GetAtt APICacheTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-CacheTableArn'
+
+  OpenAISecretArn:
+    Description: OpenAI Secret ARN
+    Value: !Ref OpenAISecret
+    Export:
+      Name: !Sub '${AWS::StackName}-OpenAISecretArn'
+
+  SolanaKeypairSecretArn:
+    Description: Solana Deployment Keypair Secret ARN
+    Value: !Ref SolanaDeploymentKeypair
+    Export:
+      Name: !Sub '${AWS::StackName}-SolanaKeypairArn'
+
+  ProgramIdParameterName:
+    Description: SSM Parameter name for Solana Program ID
+    Value: !Ref SolanaProgramIdParameter
+    Export:
+      Name: !Sub '${AWS::StackName}-ProgramIdParam'
+
+  LambdaExecutionRoleArn:
+    Description: Lambda Execution Role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaRoleArn'
