@@ -1,0 +1,29 @@
+{
+    "name": "@repo/prediction-market",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "lint": "eslint .",
+        "type-check": "tsc --noEmit",
+        "test:kalshi": "tsx src/scripts/test-kalshi.ts",
+        "test:polymarket": "tsx src/scripts/test-polymarket.ts",
+        "build": "tsc -p . --emitDeclarationOnly"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/node": "^20.10.0",
+        "dotenv": "^16.6.1",
+        "eslint": "^9.0.0",
+        "tsx": "^4.19.2",
+        "typescript": "^5.0.0"
+    },
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "dependencies": {
+        "@polymarket/clob-client": "^5.2.1",
+        "@polymarket/sdk": "^6.0.1",
+        "kalshi-typescript": "^3.6.0"
+    }
+}
